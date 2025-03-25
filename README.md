@@ -1,6 +1,6 @@
 # Market Basket Analysis using Hybrid Apriori Algorithm
 
-![Python](https://img.shields.io/badge/Python-3.13-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.11-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 ## Project Overview
