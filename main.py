@@ -7,18 +7,21 @@ from itertools import combinations
 import os
 
 class HybridApriori:
-    def __init__(self, min_support=0.01, min_confidence=0.5, max_length=None):
+
+    def __init__(self, min_support=0.01, min_confidence=0.5, max_length=None, product_names=None):
         """
         Initialize the Hybrid Apriori algorithm with parameters.
         
         Parameters:
         -----------
         min_support : float, default=0.01
-            The minimum support threshold for frequent itemsets
+        The minimum support threshold for frequent itemsets
         min_confidence : float, default=0.5
-            The minimum confidence threshold for association rules
+        The minimum confidence threshold for association rules
         max_length : int, default=None
-            The maximum length of itemsets to consider
+        The maximum length of itemsets to consider
+        product_names : dict, default=None
+        Dictionary mapping product IDs to product names
         """
         self.min_support = min_support
         self.min_confidence = min_confidence
@@ -27,6 +30,7 @@ class HybridApriori:
         self.transaction_count = 0
         self.item_counts = defaultdict(int)
         self.rules = []
+        self.product_names = product_names
     
     def fit(self, transactions):
         """
@@ -228,24 +232,53 @@ class HybridApriori:
         """Return the top n rules sorted by confidence"""
         return self.rules[:n]
     
-    def print_itemsets(self, min_length=2, max_length=None):
-        """Print frequent itemsets within specified length range"""
-        sorted_itemsets = sorted(
-            [(itemset, count / self.transaction_count) 
-             for itemset, count in self.frequent_itemsets.items()
-             if max_length is None or len(itemset) <= max_length
-             if len(itemset) >= min_length],
-            key=lambda x: x[1], 
-            reverse=True
-        )
+    def print_itemsets(self, min_length=2, max_length=None, n=None):
+        """
+        Print the frequent itemsets.
         
-        print(f"\nTop Frequent Itemsets (min_length={min_length}, max_length={max_length}):")
-        print("=" * 50)
-        print(f"{'Itemset':<30} {'Support':<10}")
-        print("-" * 50)
+        Parameters:
+        -----------
+        min_length : int, default=2
+            Minimum length of itemsets to print
+        max_length : int, default=None
+            Maximum length of itemsets to print
+        n : int, default=None
+            Number of itemsets to print
+        """
+        if not self.frequent_itemsets:
+            print("No frequent itemsets found.")
+            return
         
-        for itemset, support in sorted_itemsets[:20]:  # Show top 20
-            print(f"{str(itemset):<30} {support:.4f}")
+        # Filter itemsets by length
+        filtered_itemsets = {itemset: count for itemset, count in self.frequent_itemsets.items() 
+                            if len(itemset) >= min_length and (max_length is None or len(itemset) <= max_length)}
+        
+        if not filtered_itemsets:
+            print(f"No frequent itemsets with length between {min_length} and {max_length or 'inf'} found.")
+            return
+        
+        # Sort by support (descending)
+        sorted_itemsets = sorted(filtered_itemsets.items(), key=lambda x: x[1], reverse=True)
+        
+        # Limit number of itemsets to print
+        if n is not None:
+            sorted_itemsets = sorted_itemsets[:n]
+        
+        print(f"\nTop {len(sorted_itemsets)} frequent itemsets (min_length={min_length}, max_length={max_length or 'inf'}):")
+        for itemset, count in sorted_itemsets:
+            support = count / self.transaction_count
+            
+            # Format with product names if available
+            if self.product_names:
+                item_strings = []
+                for item in itemset:
+                    product_name = self.product_names.get(item, f"Unknown Item {item}")
+                    item_strings.append(f"{item} ({product_name})")
+                itemset_str = ", ".join(item_strings)
+            else:
+                itemset_str = ", ".join(map(str, itemset))
+                
+            print(f"{itemset_str}: support={support:.4f}, count={count}")
     
     def print_rules(self, n=10):
         """Print top n association rules"""
@@ -255,7 +288,26 @@ class HybridApriori:
         print("-" * 80)
         
         for rule in self.rules[:n]:
-            print(f"{str(rule['antecedent']):<25} {str(rule['consequent']):<25} "
+            # Format with product names if available
+            if self.product_names:
+                # Format antecedent with product names
+                antecedent_items = []
+                for item in rule['antecedent']:
+                    product_name = self.product_names.get(item, "Unknown")
+                    antecedent_items.append(f"{item} ({product_name[:15]})")
+                antecedent_str = f"({', '.join(antecedent_items)[:22]})..."
+                
+                # Format consequent with product names
+                consequent_items = []
+                for item in rule['consequent']:
+                    product_name = self.product_names.get(item, "Unknown")
+                    consequent_items.append(f"{item} ({product_name[:15]})")
+                consequent_str = f"({', '.join(consequent_items)[:22]})..."
+            else:
+                antecedent_str = str(rule['antecedent'])
+                consequent_str = str(rule['consequent'])
+                
+            print(f"{antecedent_str:<25} {consequent_str:<25} "
                   f"{rule['support']:.4f} {rule['confidence']:.4f} {rule['lift']:.4f}")
     
     def plot_support_distribution(self):
@@ -285,13 +337,25 @@ class HybridApriori:
         
         items, supports = zip(*top_items)
         
-        plt.figure(figsize=(12, 6))
-        plt.bar(range(len(items)), supports, alpha=0.7)
-        plt.xticks(range(len(items)), items, rotation=45)
+        # Create labels with product names if available
+        if self.product_names:
+            labels = [f"{item}\n{self.product_names.get(item, 'Unknown')[:15]}" for item in items]
+        else:
+            labels = items
+        
+        plt.figure(figsize=(14, 8))
+        bars = plt.bar(range(len(items)), supports, alpha=0.7)
+        plt.xticks(range(len(items)), labels, rotation=45, ha='right')
         plt.title(f'Top {n} Most Frequent Items')
-        plt.xlabel('Item ID')
+        plt.xlabel('Item ID and Name')
         plt.ylabel('Support')
         plt.grid(True, alpha=0.3)
+        
+        # Add percentage values on top of bars
+        for i, bar in enumerate(bars):
+            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                    f'{supports[i]*100:.2f}%', ha='center', va='bottom', rotation=0)
+        
         plt.tight_layout()
         plt.savefig('top_items.png')
         plt.close()
@@ -307,14 +371,22 @@ class HybridApriori:
         # Get top n rules by lift
         top_rules = sorted(self.rules, key=lambda x: x['lift'], reverse=True)[:n]
         
-        # Create labels and values for the plot
-        labels = [f"{rule['antecedent']} → {rule['consequent']}" for rule in top_rules]
+        # Create labels and values for the plot with product names if available
+        if self.product_names:
+            labels = []
+            for rule in top_rules:
+                antecedent_names = [f"{item} ({self.product_names.get(item, 'Unknown')[:10]})" for item in rule['antecedent']]
+                consequent_names = [f"{item} ({self.product_names.get(item, 'Unknown')[:10]})" for item in rule['consequent']]
+                labels.append(f"{', '.join(antecedent_names)} → {', '.join(consequent_names)}")
+        else:
+            labels = [f"{rule['antecedent']} → {rule['consequent']}" for rule in top_rules]
+        
         lifts = [rule['lift'] for rule in top_rules]
         confidences = [rule['confidence'] for rule in top_rules]
         supports = [rule['support'] * 100 for rule in top_rules]  # Convert to percentage
         
         # Create figure with two subplots
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 12))
         
         # Plot lift values
         bars1 = ax1.barh(range(len(labels)), lifts, alpha=0.7, color='skyblue')
@@ -373,6 +445,13 @@ class HybridApriori:
             return
         
         if item_id is not None:
+            # Get product name if available
+            if self.product_names and item_id in self.product_names:
+                item_name = self.product_names[item_id]
+                item_display = f"{item_id} ({item_name})"
+            else:
+                item_display = str(item_id)
+                
             # Find all itemsets containing the specified item
             related_itemsets = []
             for itemset, count in self.frequent_itemsets.items():
@@ -380,21 +459,32 @@ class HybridApriori:
                     related_itemsets.append((itemset, count))
             
             if not related_itemsets:
-                print(f"No relationships found for item {item_id}.")
+                print(f"No relationships found for item {item_display}.")
                 return
             
             # Sort by support (count)
             related_itemsets.sort(key=lambda x: x[1], reverse=True)
             
-            print(f"\nTop {min(top_n, len(related_itemsets))} relationships for item {item_id}:")
-            print("=" * 50)
-            print(f"{'Related Items':<30} {'Support':<10} {'Count':<10}")
-            print("-" * 50)
+            print(f"\nTop {min(top_n, len(related_itemsets))} relationships for item {item_display}:")
+            print("=" * 70)
+            print(f"{'Related Items':<50} {'Support':<10} {'Count':<10}")
+            print("-" * 70)
             
             for itemset, count in related_itemsets[:top_n]:
                 # Get the related items (excluding the item_id)
                 related_items = tuple(item for item in itemset if item != item_id)
-                print(f"{str(related_items):<30} {count/self.transaction_count:.4f} {count:<10}")
+                
+                # Format with product names if available
+                if self.product_names:
+                    related_items_display = []
+                    for item in related_items:
+                        product_name = self.product_names.get(item, "Unknown")
+                        related_items_display.append(f"{item} ({product_name[:20]})")
+                    related_str = ", ".join(related_items_display)
+                else:
+                    related_str = str(related_items)
+                    
+                print(f"{related_str:<50} {count/self.transaction_count:.4f} {count:<10}")
         else:
             # Find the most connected items (items that appear in the most itemsets)
             item_connections = Counter()
@@ -411,13 +501,44 @@ class HybridApriori:
                 return
             
             print(f"\nTop {len(top_connected)} most connected items:")
-            print("=" * 50)
-            print(f"{'Item':<10} {'Connections':<15} {'Frequency':<15}")
-            print("-" * 50)
+            print("=" * 70)
+            print(f"{'Item':<40} {'Connections':<15} {'Frequency':<15}")
+            print("-" * 70)
             
             for item, connections in top_connected:
                 item_frequency = self.item_counts.get(item, 0)
-                print(f"{item:<10} {connections:<15} {item_frequency:<15}")
+                
+                # Format with product name if available
+                if self.product_names and item in self.product_names:
+                    item_display = f"{item} ({self.product_names[item][:30]})"
+                else:
+                    item_display = str(item)
+                    
+                print(f"{item_display:<40} {connections:<15} {item_frequency:<15}")
+
+def load_product_names(file_path):
+    """
+    Load product names from a file where each line is a product name.
+    
+    Parameters:
+    -----------
+    file_path : str
+        Path to the file containing product names
+    
+    Returns:
+    --------
+    dict
+        Dictionary mapping product IDs to product names
+    """
+    product_names = {}
+    with open(file_path, 'r') as f:
+        for i, line in enumerate(f):
+            # Product IDs start at 1, so add 1 to the index
+            product_id = i + 1
+            # Strip quotes and whitespace
+            product_name = line.strip().strip('"')
+            product_names[product_id] = product_name
+    return product_names
 
 def load_transactions(file_path):
     """Load transactions from a file where each line is a transaction"""
@@ -431,43 +552,66 @@ def load_transactions(file_path):
     return transactions
 
 def save_results_to_csv(apriori):
-    """Save the results to CSV files for further analysis"""
-    # Save frequent itemsets
-    itemsets_data = []
-    for itemset, count in apriori.frequent_itemsets.items():
-        if len(itemset) >= 2:  # Only include itemsets with 2 or more items
-            support = count / apriori.transaction_count
-            itemsets_data.append({
-                'itemset': str(itemset),
-                'length': len(itemset),
-                'support': support,
-                'count': count
-            })
+    """
+    Save the results to CSV files for further analysis.
     
-    if itemsets_data:
-        pd.DataFrame(itemsets_data).sort_values(by='support', ascending=False).to_csv(
-            'frequent_itemsets.csv', index=False)
-        print("Frequent itemsets saved to 'frequent_itemsets.csv'")
+    Parameters:
+    -----------
+    apriori : HybridApriori
+        Trained HybridApriori instance
+    """
+    if not os.path.exists('results'):
+        os.makedirs('results')
+    
+    # Save frequent itemsets
+    with open('results/frequent_itemsets.csv', 'w') as f:
+        f.write('Itemset,Support,Count,ItemNames\n')
+        for itemset, count in sorted(apriori.frequent_itemsets.items(), key=lambda x: x[1], reverse=True):
+            support = count / apriori.transaction_count
+            itemset_str = ';'.join(map(str, itemset))
+            
+            # Add product names if available
+            if apriori.product_names:
+                item_names = [apriori.product_names.get(item, f"Unknown Item {item}") for item in itemset]
+                item_names_str = ';'.join(item_names)
+                f.write(f'"{itemset_str}",{support:.6f},{count},"{item_names_str}"\n')
+            else:
+                f.write(f'"{itemset_str}",{support:.6f},{count},""\n')
     
     # Save association rules
-    if apriori.rules:
-        rules_data = []
-        for rule in apriori.rules:
-            rules_data.append({
-                'antecedent': str(rule['antecedent']),
-                'consequent': str(rule['consequent']),
-                'support': rule['support'],
-                'confidence': rule['confidence'],
-                'lift': rule['lift']
-            })
-        
-        pd.DataFrame(rules_data).to_csv('association_rules.csv', index=False)
-        print("Association rules saved to 'association_rules.csv'")
+    with open('results/association_rules.csv', 'w') as f:
+        f.write('Antecedent,Consequent,Confidence,Lift,Support,AntecedentNames,ConsequentNames\n')
+        for rule in sorted(apriori.rules, key=lambda x: x['lift'], reverse=True):
+            antecedent = rule['antecedent']
+            consequent = rule['consequent']
+            confidence = rule['confidence']
+            lift = rule['lift']
+            support = rule['support']
+            
+            antecedent_str = ';'.join(map(str, antecedent))
+            consequent_str = ';'.join(map(str, consequent))
+            
+            # Add product names if available
+            if apriori.product_names:
+                antecedent_names = [apriori.product_names.get(item, f"Unknown Item {item}") for item in antecedent]
+                consequent_names = [apriori.product_names.get(item, f"Unknown Item {item}") for item in consequent]
+                antecedent_names_str = ';'.join(antecedent_names)
+                consequent_names_str = ';'.join(consequent_names)
+                f.write(f'"{antecedent_str}","{consequent_str}",{confidence:.6f},{lift:.6f},{support:.6f},"{antecedent_names_str}","{consequent_names_str}"\n')
+            else:
+                f.write(f'"{antecedent_str}","{consequent_str}",{confidence:.6f},{lift:.6f},{support:.6f},"",""\n')
+    
+    print("Saved results to CSV files in the 'results' directory")
 
 def main():
     # Load transactions from file
     file_path = 'Sales1998.txt'
     transactions = load_transactions(file_path)
+    
+    # Load product names
+    product_names_path = 'productList.txt'
+    product_names = load_product_names(product_names_path)
+    print(f"Loaded {len(product_names)} product names")
     
     print(f"Loaded {len(transactions)} transactions")
     print(f"Average transaction length: {sum(len(t) for t in transactions) / len(transactions):.2f} items")
@@ -487,7 +631,8 @@ def main():
     top_items = item_counter.most_common(20)
     print("\nTop 20 most frequent items:")
     for item, count in top_items:
-        print(f"Item {item}: {count} occurrences ({count/len(transactions)*100:.2f}%)")
+        product_name = product_names.get(item, f"Unknown Item {item}")
+        print(f"Item {item} ({product_name}): {count} occurrences ({count/len(transactions)*100:.2f}%)")
     
     # For this extremely sparse dataset, use absolute count instead of percentage
     # The most frequent item only appears in 0.42% of transactions
@@ -496,7 +641,7 @@ def main():
     print(f"\nUsing absolute minimum support count: {min_support_count} transactions ({min_support*100:.4f}%)")
     
     # Initialize and run Hybrid Apriori algorithm with appropriate parameters
-    apriori = HybridApriori(min_support=min_support, min_confidence=0.05, max_length=3)
+    apriori = HybridApriori(min_support=min_support, min_confidence=0.05, max_length=3, product_names=product_names)
     apriori.fit(transactions)
     
     # Print results

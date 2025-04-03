@@ -11,10 +11,17 @@ This project implements a Hybrid Apriori algorithm for market basket analysis, d
 </p>
 
 ## Dataset
-The analysis uses the Sales1998.txt dataset with the following characteristics:
-- 34,070 transactions with an average of 4.83 items per transaction
-- 1,559 unique items
-- Extremely sparse: the most frequent item (277) appears in only 0.42% of transactions
+The analysis uses two datasets:
+
+1. **Sales1998.txt**:
+   - 34,070 transactions with an average of 4.83 items per transaction
+   - 1,559 unique items
+   - Extremely sparse: the most frequent item (277) appears in only 0.42% of transactions
+
+2. **productList.txt**:
+   - Contains names for all 1,560 products
+   - Maps product IDs to their corresponding product names
+   - Enhances the interpretability of analysis results
 
 ## Algorithm Implementation
 The `HybridApriori` class implements a modified version of the classic Apriori algorithm with several optimizations:
@@ -35,19 +42,26 @@ The `HybridApriori` class implements a modified version of the classic Apriori a
    - Processes transactions in a streaming fashion
    - Only stores frequent itemsets, not all candidate itemsets
 
+5. **Product Name Integration**:
+   - Loads product names from productList.txt
+   - Maps product IDs to their corresponding names
+   - Enhances visualization and result interpretation by displaying product names alongside IDs
+
 ## Key Findings
 Due to the extreme sparsity of the dataset, the analysis required using an absolute support count (10 transactions, equivalent to 0.0294%) instead of a percentage-based threshold. This approach yielded:
 
 - 6 frequent 2-itemsets
 - 12 association rules with high lift values (ranging from 23 to 32)
-- Item 132 appearing in 2 different frequent itemsets, making it the most connected item
-- Interestingly, the top 3 most frequent items (277, 1352, 846) don't appear in any frequent itemsets
+- Item 132 (Denny 60 Watt Lightbulb) appearing in 2 different frequent itemsets, making it the most connected item
+- Interestingly, the top 3 most frequent items (277 "Great English Muffins", 1352 "Carrington Ice Cream", 846 "Nationeel Fudge Brownies") don't appear in any frequent itemsets
+- Enhanced interpretability through product name integration, revealing meaningful associations like "Carlson Low Fat Sour Cream" frequently purchased with "Big Time Apple Cinnamon Waffles"
 
 ## Files in this Repository
 - `main.py`: Implementation of the Hybrid Apriori algorithm and analysis tools
 - `Sales1998.txt`: Raw transaction data (each line represents a transaction)
-- `frequent_itemsets.csv`: Output file containing discovered frequent itemsets
-- `association_rules.csv`: Output file containing generated association rules
+- `productList.txt`: Product names corresponding to product IDs
+- `frequent_itemsets.csv`: Output file containing discovered frequent itemsets with product names
+- `association_rules.csv`: Output file containing generated association rules with product names
 - `requirements.txt`: List of Python dependencies
 
 ## Installation & Setup

@@ -1,0 +1,13 @@
+Antecedent,Consequent,Confidence,Lift,Support,AntecedentNames,ConsequentNames
+"355","405",0.109091,31.766900,0.000352,"355 "Carlson Low Fat Sour Cream","405 "Big Time Apple Cinnamon Waffles"
+"405","355",0.102564,31.766900,0.000352,"405 "Big Time Apple Cinnamon Waffles","355 "Carlson Low Fat Sour Cream"
+"132","1490",0.085470,29.413796,0.000294,"132 "Denny 60 Watt Lightbulb","1490 "Fort West Sesame Crackers"
+"1490","132",0.101010,29.413796,0.000294,"1490 "Fort West Sesame Crackers","132 "Denny 60 Watt Lightbulb"
+"1235","486",0.093220,28.357294,0.000323,"1235 "Plato Strawberry Jelly","486 "Tell Tale New Potatos"
+"486","1235",0.098214,28.357294,0.000323,"486 "Tell Tale New Potatos","1235 "Plato Strawberry Jelly"
+"498","132",0.089286,25.999695,0.000294,"498 "Tell Tale Tomatos","132 "Denny 60 Watt Lightbulb"
+"132","498",0.085470,25.999695,0.000294,"132 "Denny 60 Watt Lightbulb","498 "Tell Tale Tomatos"
+"395","345",0.090090,23.979448,0.000294,"395 "Big Time Frozen Chicken Breast","345 "Better Fancy Canned Clams"
+"345","395",0.078125,23.979448,0.000294,"345 "Better Fancy Canned Clams","395 "Big Time Frozen Chicken Breast"
+"282","232",0.088000,23.607559,0.000323,"282 "Great Wheat Bread","232 "Best Choice Salsa Dip"
+"232","282",0.086614,23.607559,0.000323,"232 "Best Choice Salsa Dip","282 "Great Wheat Bread"
